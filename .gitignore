@@ -1,0 +1,26 @@
+# Binaries
+bin/
+*.exe
+
+# Go
+vendor/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+
+# Docker volumes (local)
+pgdata/
+redisdata/
+
+# Environment
+.env
