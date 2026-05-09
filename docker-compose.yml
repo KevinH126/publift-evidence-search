@@ -1,0 +1,89 @@
+services:
+  # ── Go API Server ──
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - DATABASE_URL=postgres://semantic:semantic@postgres:5432/semantic?sslmode=disable
+      - REDIS_URL=redis://redis:6379/0
+      - EMBEDDER_URL=http://embedder:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      embedder:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── Go Worker ──
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: worker
+    environment:
+      - DATABASE_URL=postgres://semantic:semantic@postgres:5432/semantic?sslmode=disable
+      - REDIS_URL=redis://redis:6379/0
+      - EMBEDDER_URL=http://embedder:8000
+      - WORKER_CONCURRENCY=4
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      embedder:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── Python Embedding Sidecar ──
+  embedder:
+    build:
+      context: ./embedder-sidecar
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2
+    # The model downloads on first start (~90MB), then it's cached in the image layer
+    restart: unless-stopped
+
+  # ── PostgreSQL + pgvector ──
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: semantic
+      POSTGRES_PASSWORD: semantic
+      POSTGRES_DB: semantic
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrate.sql:/docker-entrypoint-initdb.d/01-migrate.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U semantic"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ──
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:
