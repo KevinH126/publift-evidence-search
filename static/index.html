@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PubLift — Evidence Search</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --border: #2a2d3a;
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --radius: 8px;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px; line-height: 1.6; min-height: 100vh; }
+
+  header { border-bottom: 1px solid var(--border); padding: 16px 24px;
+    display: flex; align-items: center; gap: 12px; }
+  header svg { color: var(--accent); }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header span { color: var(--muted); font-size: 12px; }
+
+  .layout { display: grid; grid-template-columns: 340px 1fr; gap: 0; height: calc(100vh - 57px); }
+
+  .sidebar { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .sidebar-header { padding: 16px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+
+  /* Upload zone */
+  .upload-zone { margin: 16px 16px 8px; border: 2px dashed var(--border); border-radius: var(--radius);
+    padding: 20px 16px; text-align: center; cursor: pointer; transition: all 0.2s;
+    background: var(--surface); }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(99,102,241,0.05); }
+  .upload-zone p { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .upload-zone strong { color: var(--text); }
+  #file-input { display: none; }
+  .upload-btn { display: inline-block; margin-top: 10px; padding: 6px 14px; background: var(--accent);
+    color: white; border-radius: var(--radius); font-size: 12px; cursor: pointer; }
+
+  /* Metadata inputs */
+  .meta-fields { margin: 0 16px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .meta-fields input, .meta-fields select { background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); border-radius: 6px; padding: 6px 8px; font-size: 12px; outline: none; width: 100%; }
+  .meta-fields input:focus, .meta-fields select:focus { border-color: var(--accent); }
+  .meta-fields .full { grid-column: 1 / -1; }
+  .meta-label { grid-column: 1 / -1; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--muted); margin-top: 2px; }
+
+  /* Upload progress */
+  .upload-progress { margin: 0 16px 8px; display: none; }
+  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); width: 0; transition: width 0.3s;
+    animation: indeterminate 1.5s infinite; }
+  @keyframes indeterminate { 0% { transform: translateX(-100%); width: 60%; }
+    100% { transform: translateX(200%); width: 60%; } }
+
+  /* Study list */
+  .doc-list { flex: 1; overflow-y: auto; }
+  .doc-item { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer;
+    transition: background 0.15s; display: flex; flex-direction: column; gap: 4px; }
+  .doc-item:hover { background: var(--surface); }
+  .doc-item.selected { background: rgba(99,102,241,0.1); border-left: 3px solid var(--accent); }
+  .doc-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; }
+  .doc-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.03em; }
+  .badge-pending  { background: rgba(100,116,139,0.2); color: var(--muted); }
+  .badge-processing { background: rgba(245,158,11,0.15); color: var(--warning); }
+  .badge-completed  { background: rgba(34,197,94,0.15); color: var(--success); }
+  .badge-failed     { background: rgba(239,68,68,0.15); color: var(--error); }
+  .badge-type { background: rgba(99,102,241,0.15); color: var(--accent-light); }
+  .doc-chunks { color: var(--muted); font-size: 11px; }
+  .doc-actions { display: flex; gap: 4px; margin-top: 4px; }
+  .doc-action-btn { font-size: 10px; padding: 2px 8px; border: 1px solid var(--border);
+    border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer;
+    transition: all 0.15s; }
+  .doc-action-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+  .empty-state { text-align: center; padding: 40px 16px; color: var(--muted); font-size: 12px; }
+
+  /* Main content */
+  .main { display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Search */
+  .search-area { padding: 20px 24px; border-bottom: 1px solid var(--border); }
+  .search-row { display: flex; gap: 10px; }
+  .search-input { flex: 1; background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); border-radius: var(--radius); padding: 10px 14px; font-size: 14px;
+    outline: none; transition: border-color 0.2s; }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+  .search-submit { padding: 10px 20px; background: var(--accent); color: white; border: none;
+    border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer;
+    transition: opacity 0.2s; white-space: nowrap; }
+  .search-submit:hover { opacity: 0.9; }
+  .search-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .search-controls { display: flex; align-items: center; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+  .mode-toggle { display: flex; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; }
+  .mode-btn { padding: 5px 14px; font-size: 12px; font-weight: 500; border: none; cursor: pointer;
+    background: transparent; color: var(--muted); transition: all 0.15s; }
+  .mode-btn.active { background: var(--accent); color: white; }
+  .topk-label { color: var(--muted); font-size: 12px; }
+  .topk-input { width: 48px; background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); border-radius: 4px; padding: 4px 8px; font-size: 12px; text-align: center;
+    outline: none; }
+  .filter-select, .filter-year { background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); border-radius: 4px; padding: 4px 8px; font-size: 12px; outline: none; }
+  .filter-year { width: 90px; }
+  .filter-note { color: var(--accent-light); font-size: 11px; }
+
+  /* Results */
+  .results-area { flex: 1; overflow-y: auto; padding: 20px 24px; }
+  .results-header { display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; }
+  .results-title { font-weight: 600; font-size: 13px; }
+  .results-meta { color: var(--muted); font-size: 12px; }
+
+  .result-card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 12px; transition: border-color 0.2s; }
+  .result-card:hover { border-color: var(--accent); }
+  .result-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    margin-bottom: 10px; }
+  .result-source { font-size: 12px; color: var(--accent-light); font-weight: 600; }
+  .result-sub { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
+  .result-score-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .score-bar { width: 80px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+  .score-value { font-size: 11px; font-weight: 600; width: 36px; text-align: right; }
+  .result-content { color: var(--text); font-size: 13px; line-height: 1.6;
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .result-footer { display: flex; gap: 12px; margin-top: 8px; }
+  .result-tag { font-size: 10px; color: var(--muted); }
+
+  .placeholder { text-align: center; padding: 60px 24px; color: var(--muted); }
+  .placeholder svg { opacity: 0.2; margin-bottom: 12px; }
+  .placeholder p { font-size: 13px; }
+
+  /* Summary / Related panels */
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 16px; }
+  .panel-title { font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--muted); margin-bottom: 12px; }
+
+  /* Toast */
+  .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex;
+    flex-direction: column; gap: 8px; z-index: 100; }
+  .toast { padding: 10px 16px; border-radius: var(--radius); font-size: 13px;
+    animation: slideIn 0.2s ease; max-width: 300px; }
+  .toast-success { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: var(--success); }
+  .toast-error   { background: rgba(239,68,68,0.15);  border: 1px solid rgba(239,68,68,0.3);  color: var(--error); }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; } }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    <path d="M11 8v6M8 11h6" stroke-linecap="round"/>
+  </svg>
+  <h1>PubLift — Evidence Search</h1>
+  <span>science-based lifting research · pgvector · sentence-transformers · Go</span>
+</header>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">Studies</div>
+
+    <div class="upload-zone" id="drop-zone">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.5" style="color:var(--muted);margin:0 auto 8px;display:block">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      <strong>Upload a study</strong>
+      <p>TXT, MD, or PDF · max 10 MB</p>
+      <label class="upload-btn" for="file-input">Choose file</label>
+      <input type="file" id="file-input" accept=".txt,.md,.pdf" />
+    </div>
+
+    <div class="meta-fields">
+      <div class="meta-label">Optional metadata</div>
+      <input class="full" id="m-title" type="text" placeholder="Title (defaults to filename)" />
+      <select id="m-study-type">
+        <option value="">Study type…</option>
+        <option value="meta-analysis">Meta-analysis</option>
+        <option value="systematic-review">Systematic review</option>
+        <option value="rct">RCT</option>
+        <option value="crossover">Crossover</option>
+        <option value="cohort">Cohort</option>
+        <option value="observational">Observational</option>
+        <option value="review">Review</option>
+        <option value="case-study">Case study</option>
+      </select>
+      <input id="m-topic" type="text" placeholder="Topic (e.g. hypertrophy)" />
+      <input id="m-authors" class="full" type="text" placeholder="Authors (comma-separated)" />
+      <input id="m-year" type="number" placeholder="Year" min="1950" max="2030" />
+      <input id="m-population" type="text" placeholder="Population" />
+    </div>
+
+    <div class="upload-progress" id="upload-progress">
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+
+    <div class="doc-list" id="doc-list">
+      <div class="empty-state">No studies yet.<br/>Upload one above.</div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="search-area">
+      <div class="search-row">
+        <input class="search-input" id="search-input" type="text"
+               placeholder="Ask a research question, e.g. 'does training to failure matter for hypertrophy?'" />
+        <button class="search-submit" id="search-btn">Search</button>
+      </div>
+      <div class="search-controls">
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="btn-semantic" onclick="setMode('semantic')">Semantic</button>
+          <button class="mode-btn"        id="btn-keyword"  onclick="setMode('keyword')">Keyword</button>
+        </div>
+        <span class="topk-label">Top</span>
+        <input class="topk-input" id="topk" type="number" min="1" max="20" value="5" />
+        <select class="filter-select" id="f-study-type" title="Filter by study type">
+          <option value="">Any study type</option>
+          <option value="meta-analysis">Meta-analysis</option>
+          <option value="systematic-review">Systematic review</option>
+          <option value="rct">RCT</option>
+          <option value="crossover">Crossover</option>
+          <option value="cohort">Cohort</option>
+          <option value="observational">Observational</option>
+          <option value="review">Review</option>
+          <option value="case-study">Case study</option>
+        </select>
+        <input class="filter-year" id="f-min-year" type="number" placeholder="Min year" min="1950" max="2030" />
+        <span class="filter-note" id="filter-note" style="display:none"></span>
+      </div>
+    </div>
+
+    <div class="results-area" id="results-area">
+      <div class="placeholder">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <p>Upload studies and search the evidence. Semantic ranking is evidence-weighted:
+           stronger designs (meta-analyses, RCTs) get a boost.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+const API = '/api/v1';
+let searchMode = 'semantic';
+let selectedStudyID = null;
+let pollTimer = null;
+
+// ── Mode toggle ──
+function setMode(mode) {
+  searchMode = mode;
+  document.getElementById('btn-semantic').classList.toggle('active', mode === 'semantic');
+  document.getElementById('btn-keyword').classList.toggle('active', mode === 'keyword');
+}
+
+// ── Toast ──
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── Upload ──
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag');
+  if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) uploadFile(fileInput.files[0]); });
+
+function metaField(id) { return document.getElementById(id).value.trim(); }
+
+async function uploadFile(file) {
+  const progress = document.getElementById('upload-progress');
+  progress.style.display = 'block';
+  const fd = new FormData();
+  fd.append('file', file);
+
+  // Attach any optional metadata the user filled in.
+  const fields = {
+    title: 'm-title', study_type: 'm-study-type', topic: 'm-topic',
+    authors: 'm-authors', year: 'm-year', population: 'm-population',
+  };
+  for (const [key, id] of Object.entries(fields)) {
+    const v = metaField(id);
+    if (v) fd.append(key, v);
+  }
+
+  try {
+    const res = await fetch(`${API}/studies`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) {
+      toast(data.error || 'Upload failed', 'error');
+    } else {
+      toast(`Uploaded "${data.title}" — processing…`);
+      clearMetaFields();
+      loadStudies();
+      schedulePoll();
+    }
+  } catch (e) {
+    toast('Upload error: ' + e.message, 'error');
+  } finally {
+    progress.style.display = 'none';
+    fileInput.value = '';
+  }
+}
+
+function clearMetaFields() {
+  ['m-title','m-study-type','m-topic','m-authors','m-year','m-population']
+    .forEach(id => document.getElementById(id).value = '');
+}
+
+// ── Studies ──
+async function loadStudies() {
+  const res = await fetch(`${API}/studies`);
+  if (!res.ok) return;
+  const studies = await res.json();
+  renderStudies(studies);
+
+  const anyPending = studies.some(d => d.status === 'pending' || d.status === 'processing');
+  if (anyPending) {
+    schedulePoll();
+  } else {
+    clearTimeout(pollTimer);
+  }
+}
+
+function schedulePoll() {
+  clearTimeout(pollTimer);
+  pollTimer = setTimeout(loadStudies, 2000);
+}
+
+function renderStudies(studies) {
+  const list = document.getElementById('doc-list');
+  if (!studies || studies.length === 0) {
+    list.innerHTML = '<div class="empty-state">No studies yet.<br/>Upload one above.</div>';
+    return;
+  }
+
+  list.innerHTML = studies.map(s => `
+    <div class="doc-item ${s.id === selectedStudyID ? 'selected' : ''}"
+         onclick="selectStudy('${s.id}', '${escHtml(s.title)}')">
+      <div class="doc-name" title="${escHtml(s.title)}">${escHtml(s.title)}</div>
+      <div class="doc-meta">
+        <span class="badge badge-${s.status}">${s.status}</span>
+        ${s.study_type && s.study_type !== 'unknown' ? `<span class="badge badge-type">${escHtml(s.study_type)}</span>` : ''}
+        ${s.year ? `<span class="doc-chunks">${s.year}</span>` : ''}
+        ${s.chunk_count > 0 ? `<span class="doc-chunks">${s.chunk_count} chunks</span>` : ''}
+      </div>
+      ${s.status === 'completed' ? `
+      <div class="doc-actions">
+        <button class="doc-action-btn" onclick="event.stopPropagation();showSummary('${s.id}','${escHtml(s.title)}')">Summary</button>
+        <button class="doc-action-btn" onclick="event.stopPropagation();showRelated('${s.id}','${escHtml(s.title)}')">Related</button>
+        <button class="doc-action-btn" onclick="event.stopPropagation();deleteStudy('${s.id}','${escHtml(s.title)}')">Delete</button>
+      </div>` : ''}
+    </div>
+  `).join('');
+}
+
+function escHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function selectStudy(id, name) {
+  selectedStudyID = selectedStudyID === id ? null : id;
+  const note = document.getElementById('filter-note');
+  if (selectedStudyID) {
+    note.textContent = `Scoped to: ${name}`;
+    note.style.display = 'inline';
+  } else {
+    note.style.display = 'none';
+  }
+  loadStudies();
+}
+
+async function deleteStudy(id, name) {
+  if (!confirm(`Delete "${name}"?`)) return;
+  const res = await fetch(`${API}/studies/${id}`, { method: 'DELETE' });
+  if (res.status === 204) {
+    if (selectedStudyID === id) { selectedStudyID = null; document.getElementById('filter-note').style.display='none'; }
+    toast(`Deleted "${name}"`);
+    loadStudies();
+  } else {
+    toast('Delete failed', 'error');
+  }
+}
+
+// ── Search ──
+document.getElementById('search-btn').addEventListener('click', runSearch);
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runSearch();
+});
+
+async function runSearch() {
+  const query = document.getElementById('search-input').value.trim();
+  if (!query) return;
+
+  const topK = parseInt(document.getElementById('topk').value) || 5;
+  const btn = document.getElementById('search-btn');
+  btn.disabled = true;
+  btn.textContent = 'Searching…';
+
+  const endpoint = searchMode === 'semantic' ? `${API}/search` : `${API}/search/keyword`;
+  const body = { query, top_k: topK };
+
+  if (searchMode === 'semantic') {
+    if (selectedStudyID) body.study_id = selectedStudyID;
+    const st = document.getElementById('f-study-type').value;
+    if (st) body.study_type = [st];
+    const minYear = parseInt(document.getElementById('f-min-year').value);
+    if (!isNaN(minYear)) body.min_year = minYear;
+  }
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toast(data.error || 'Search failed', 'error');
+    } else {
+      renderResults(data);
+    }
+  } catch (e) {
+    toast('Search error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Search';
+  }
+}
+
+function renderResults(data) {
+  const area = document.getElementById('results-area');
+  const results = data.results || [];
+
+  if (results.length === 0) {
+    area.innerHTML = `<div class="placeholder"><p>No results for "<strong>${escHtml(data.query)}</strong>"</p></div>`;
+    return;
+  }
+
+  const modeLabel = searchMode === 'semantic' ? 'Semantic · evidence-weighted' : 'Keyword';
+  const cacheLabel = data.cached ? ' · <span style="color:var(--success)">cached</span>' : '';
+
+  area.innerHTML = `
+    <div class="results-header">
+      <div class="results-title">${results.length} results for "<em>${escHtml(data.query)}</em>"</div>
+      <div class="results-meta">${modeLabel} · ${data.latency}${cacheLabel}</div>
+    </div>
+    ${results.map((r, i) => renderCard(r, i)).join('')}
+  `;
+}
+
+function renderCard(r, i) {
+  const pct = Math.round(r.score * 100);
+  const hue = Math.round(r.score * 120); // green for high scores
+  const color = `hsl(${hue}, 70%, 55%)`;
+  const typeBadge = r.study_type && r.study_type !== 'unknown'
+    ? `<span class="badge badge-type">${escHtml(r.study_type)}</span>` : '';
+  const year = r.year ? `<span class="result-tag">${r.year}</span>` : '';
+  return `
+    <div class="result-card">
+      <div class="result-top">
+        <div>
+          <div class="result-source">${escHtml(r.title)}</div>
+          <div class="result-sub">${typeBadge}${year}</div>
+        </div>
+        <div class="result-score-wrap">
+          <div class="score-bar">
+            <div class="score-fill" style="width:${pct}%;background:${color}"></div>
+          </div>
+          <div class="score-value" style="color:${color}">${pct}%</div>
+        </div>
+      </div>
+      <div class="result-content">${escHtml(r.content)}</div>
+      <div class="result-footer">
+        ${r.page_num != null ? `<span class="result-tag">Page ${r.page_num}</span>` : ''}
+        <span class="result-tag">Chunk ${r.chunk_index}</span>
+      </div>
+    </div>
+  `;
+}
+
+// ── Summary ──
+async function showSummary(studyID, title) {
+  const area = document.getElementById('results-area');
+  area.innerHTML = `<div class="placeholder"><p>Loading summary…</p></div>`;
+
+  const res = await fetch(`${API}/studies/${studyID}/summary`);
+  const data = await res.json();
+
+  if (!res.ok) {
+    toast(data.error || 'Failed to load summary', 'error');
+    return;
+  }
+
+  area.innerHTML = `
+    <div class="results-header">
+      <div class="results-title">Extractive Summary — ${escHtml(title)}</div>
+      <div class="results-meta">${data.summary_chunks.length} key passages · centroid-based</div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Most representative passages</div>
+      ${data.summary_chunks.map((r, i) => renderCard(r, i)).join('')}
+    </div>
+  `;
+}
+
+// ── Related studies ──
+async function showRelated(studyID, title) {
+  const area = document.getElementById('results-area');
+  area.innerHTML = `<div class="placeholder"><p>Finding related studies…</p></div>`;
+
+  const res = await fetch(`${API}/studies/${studyID}/related`);
+  const data = await res.json();
+
+  if (!res.ok) {
+    toast(data.error || 'Failed to find related studies', 'error');
+    return;
+  }
+
+  const related = data.related || [];
+  area.innerHTML = `
+    <div class="results-header">
+      <div class="results-title">Studies Related to "${escHtml(title)}"</div>
+      <div class="results-meta">Ranked by average chunk embedding similarity</div>
+    </div>
+    ${related.length === 0
+      ? `<div class="placeholder"><p>No other completed studies to compare against.</p></div>`
+      : related.map(d => `
+        <div class="result-card" onclick="selectStudy('${d.study_id}','${escHtml(d.title)}')" style="cursor:pointer">
+          <div class="result-top">
+            <div>
+              <div class="result-source">${escHtml(d.title)}</div>
+              <div class="result-sub">
+                ${d.study_type && d.study_type !== 'unknown' ? `<span class="badge badge-type">${escHtml(d.study_type)}</span>` : ''}
+                ${d.year ? `<span class="result-tag">${d.year}</span>` : ''}
+              </div>
+            </div>
+            <div class="result-score-wrap">
+              <div class="score-bar">
+                <div class="score-fill" style="width:${Math.round(d.score*100)}%;background:hsl(${Math.round(d.score*120)},70%,55%)"></div>
+              </div>
+              <div class="score-value" style="color:hsl(${Math.round(d.score*120)},70%,55%)">${Math.round(d.score*100)}%</div>
+            </div>
+          </div>
+          <div class="result-footer"><span class="result-tag">${d.chunk_count} chunks</span></div>
+        </div>
+      `).join('')
+    }
+  `;
+}
+
+// ── Init ──
+loadStudies();
+</script>
+</body>
+</html>
