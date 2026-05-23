@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kevinhart/semantic-search/internal/domain"
+	"github.com/KevinH126/publift-evidence-search/internal/domain"
 )
 
 // evidenceWeights maps a normalized study type to a ranking multiplier. The

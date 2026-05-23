@@ -10,7 +10,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/kevinhart/semantic-search/internal/domain"
+	"github.com/KevinH126/publift-evidence-search/internal/domain"
 )
 
 // Redis wraps a Redis client for caching, rate limiting, and job queue.

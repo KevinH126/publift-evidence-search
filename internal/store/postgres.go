@@ -12,8 +12,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	pgvector "github.com/pgvector/pgvector-go"
 
-	"github.com/kevinhart/semantic-search/internal/domain"
-	"github.com/kevinhart/semantic-search/internal/ranking"
+	"github.com/KevinH126/publift-evidence-search/internal/domain"
+	"github.com/KevinH126/publift-evidence-search/internal/ranking"
 )
 
 //go:embed migrate.sql

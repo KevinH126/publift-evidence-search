@@ -1,4 +1,4 @@
-module github.com/kevinhart/semantic-search
+module github.com/KevinH126/publift-evidence-search
 
 go 1.22
 

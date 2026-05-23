@@ -7,10 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/kevinhart/semantic-search/internal/config"
-	"github.com/kevinhart/semantic-search/internal/service"
-	"github.com/kevinhart/semantic-search/internal/store"
-	"github.com/kevinhart/semantic-search/internal/worker"
+	"github.com/KevinH126/publift-evidence-search/internal/config"
+	"github.com/KevinH126/publift-evidence-search/internal/service"
+	"github.com/KevinH126/publift-evidence-search/internal/store"
+	"github.com/KevinH126/publift-evidence-search/internal/worker"
 )
 
 func main() {

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/kevinhart/semantic-search/internal/domain"
+	"github.com/KevinH126/publift-evidence-search/internal/domain"
 )
 
 // StudyStore is the persistence contract the API depends on.

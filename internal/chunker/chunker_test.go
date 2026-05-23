@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kevinhart/semantic-search/internal/chunker"
+	"github.com/KevinH126/publift-evidence-search/internal/chunker"
 )
 
 func TestChunk_BasicSplitting(t *testing.T) {

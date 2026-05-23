@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kevinhart/semantic-search/internal/api"
-	"github.com/kevinhart/semantic-search/internal/domain"
+	"github.com/KevinH126/publift-evidence-search/internal/api"
+	"github.com/KevinH126/publift-evidence-search/internal/domain"
 	"log/slog"
 	"os"
 )

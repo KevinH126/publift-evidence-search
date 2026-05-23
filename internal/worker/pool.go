@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/kevinhart/semantic-search/internal/chunker"
-	"github.com/kevinhart/semantic-search/internal/domain"
-	"github.com/kevinhart/semantic-search/internal/service"
-	"github.com/kevinhart/semantic-search/internal/store"
+	"github.com/KevinH126/publift-evidence-search/internal/chunker"
+	"github.com/KevinH126/publift-evidence-search/internal/domain"
+	"github.com/KevinH126/publift-evidence-search/internal/service"
+	"github.com/KevinH126/publift-evidence-search/internal/store"
 )
 
 // Pool manages a set of goroutine workers that process study indexing jobs.

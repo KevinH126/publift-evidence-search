@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kevinhart/semantic-search/internal/domain"
+	"github.com/KevinH126/publift-evidence-search/internal/domain"
 )
 
 // Embedder communicates with the Python embedding sidecar.

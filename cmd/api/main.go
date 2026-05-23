@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kevinhart/semantic-search/internal/api"
-	"github.com/kevinhart/semantic-search/internal/config"
-	"github.com/kevinhart/semantic-search/internal/service"
-	"github.com/kevinhart/semantic-search/internal/store"
+	"github.com/KevinH126/publift-evidence-search/internal/api"
+	"github.com/KevinH126/publift-evidence-search/internal/config"
+	"github.com/KevinH126/publift-evidence-search/internal/service"
+	"github.com/KevinH126/publift-evidence-search/internal/store"
 )
 
 func main() {

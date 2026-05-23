@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kevinhart/semantic-search/internal/service"
+	"github.com/KevinH126/publift-evidence-search/internal/service"
 )
 
 // mockSidecar starts a fake embedding sidecar for testing.

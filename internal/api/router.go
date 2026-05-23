@@ -15,8 +15,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 
-	"github.com/kevinhart/semantic-search/internal/domain"
-	"github.com/kevinhart/semantic-search/internal/pdf"
+	"github.com/KevinH126/publift-evidence-search/internal/domain"
+	"github.com/KevinH126/publift-evidence-search/internal/pdf"
 )
 
 const maxUploadSize = 10 << 20 // 10MB
