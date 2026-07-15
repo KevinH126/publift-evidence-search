@@ -7,7 +7,6 @@ exposes a single POST /embed endpoint.
 import os
 from contextlib import asynccontextmanager
 
-import numpy as np
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
