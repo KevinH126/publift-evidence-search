@@ -1,5 +1,7 @@
 # PubLift — Evidence Search
 
+[![CI](https://github.com/KevinH126/publift-evidence-search/actions/workflows/ci.yml/badge.svg)](https://github.com/KevinH126/publift-evidence-search/actions/workflows/ci.yml)
+
 A production-grade semantic search API for **science-based lifting research**, built in Go with a Python embedding microservice. Upload exercise-science studies (PDF, TXT, MD) with bibliographic metadata, then ask natural-language questions ("does training to failure matter for hypertrophy?") and get semantically relevant passages ranked by cosine similarity **and re-weighted by evidence strength** — meta-analyses and RCTs outrank single observational studies. All self-hosted, zero cost.
 
 The underlying engine is a general-purpose vector search stack; the domain layer on top models studies, evidence tiers, and topic/study-type filters.
@@ -38,7 +40,12 @@ docker compose up --build
 # Health check
 curl http://localhost:8080/api/v1/health
 
-# Upload a study (file only, or with optional bibliographic metadata)
+# Load a demo corpus (real exercise-science abstracts + full text, pulled from
+# PubMed/PMC's official APIs — no scraping, no manual downloads needed)
+make seed            # abstracts only, ~1000 studies, a few minutes
+make seed-fulltext   # also upgrades studies with an Open Access full-text copy in PMC (slower)
+
+# Or upload a study yourself (file only, or with optional bibliographic metadata)
 curl.exe -X POST http://localhost:8080/api/v1/studies -F "file=@yourstudy.txt" `
   -F "title=Dose-response of resistance training volume" `
   -F "study_type=meta-analysis" -F "topic=hypertrophy" -F "year=2017"
@@ -221,6 +228,10 @@ semantic-search/
 ├── embedder-sidecar/
 │   ├── main.py              # FastAPI + sentence-transformers
 │   └── Dockerfile
+├── scripts/
+│   ├── fetch_pubmed_corpus.py   # Pull abstracts from PubMed E-utilities (14 topics)
+│   ├── fetch_pmc_fulltext.py    # Upgrade eligible studies to PMC Open Access full text
+│   └── upload_corpus.py         # Bulk-upload the fetched corpus to a running API
 ├── static/index.html        # Single-page demo UI
 ├── benchmarks/load_test.js  # k6 load test scenarios
 ├── docker-compose.yml       # 5-service stack
