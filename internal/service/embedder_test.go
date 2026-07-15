@@ -23,7 +23,10 @@ func happySidecar(t *testing.T, dim int) *httptest.Server {
 		var req struct {
 			Texts []string `json:"texts"`
 		}
-		json.NewDecoder(r.Body).Decode(&req)
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Errorf("failed to decode request: %v", err)
+			return
+		}
 
 		embeddings := make([][]float32, len(req.Texts))
 		for i := range req.Texts {
@@ -32,10 +35,12 @@ func happySidecar(t *testing.T, dim int) *httptest.Server {
 			embeddings[i] = vec
 		}
 
-		json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"embeddings": embeddings,
 			"dimension":  dim,
-		})
+		}); err != nil {
+			t.Errorf("failed to encode response: %v", err)
+		}
 	})
 }
 
@@ -90,16 +95,21 @@ func TestEmbed_LargeBatchSplitting(t *testing.T) {
 		var req struct {
 			Texts []string `json:"texts"`
 		}
-		json.NewDecoder(r.Body).Decode(&req)
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Errorf("failed to decode request: %v", err)
+			return
+		}
 
 		embeddings := make([][]float32, len(req.Texts))
 		for i := range req.Texts {
 			embeddings[i] = make([]float32, 384)
 		}
-		json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"embeddings": embeddings,
 			"dimension":  384,
-		})
+		}); err != nil {
+			t.Errorf("failed to encode response: %v", err)
+		}
 	})
 
 	embedder := service.NewEmbedder(srv.URL)
@@ -124,7 +134,9 @@ func TestEmbed_LargeBatchSplitting(t *testing.T) {
 
 func TestHealth_OK(t *testing.T) {
 	srv := mockSidecar(t, func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]any{"status": "ok", "model_loaded": true})
+		if err := json.NewEncoder(w).Encode(map[string]any{"status": "ok", "model_loaded": true}); err != nil {
+			t.Errorf("failed to encode response: %v", err)
+		}
 	})
 	embedder := service.NewEmbedder(srv.URL)
 

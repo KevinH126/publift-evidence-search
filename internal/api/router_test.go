@@ -160,9 +160,16 @@ func TestUploadStudy(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			w := multipart.NewWriter(&buf)
-			fw, _ := w.CreateFormFile("file", tt.filename)
-			fw.Write([]byte(tt.content))
-			w.Close()
+			fw, err := w.CreateFormFile("file", tt.filename)
+			if err != nil {
+				t.Fatalf("failed to create form file: %v", err)
+			}
+			if _, err := fw.Write([]byte(tt.content)); err != nil {
+				t.Fatalf("failed to write form file: %v", err)
+			}
+			if err := w.Close(); err != nil {
+				t.Fatalf("failed to close writer: %v", err)
+			}
 
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/studies", &buf)
 			req.Header.Set("Content-Type", w.FormDataContentType())
@@ -182,14 +189,31 @@ func TestUploadStudyWithMetadata(t *testing.T) {
 
 	var buf bytes.Buffer
 	w := multipart.NewWriter(&buf)
-	fw, _ := w.CreateFormFile("file", "schoenfeld2017.txt")
-	fw.Write([]byte("training volume and hypertrophy"))
-	w.WriteField("title", "Dose-response of resistance training volume")
-	w.WriteField("study_type", "Meta-Analysis")
-	w.WriteField("topic", "Hypertrophy")
-	w.WriteField("authors", "Schoenfeld, B.; Ogborn, D.")
-	w.WriteField("year", "2017")
-	w.Close()
+	fw, err := w.CreateFormFile("file", "schoenfeld2017.txt")
+	if err != nil {
+		t.Fatalf("failed to create form file: %v", err)
+	}
+	if _, err := fw.Write([]byte("training volume and hypertrophy")); err != nil {
+		t.Fatalf("failed to write form file: %v", err)
+	}
+	if err := w.WriteField("title", "Dose-response of resistance training volume"); err != nil {
+		t.Fatalf("failed to write field: %v", err)
+	}
+	if err := w.WriteField("study_type", "Meta-Analysis"); err != nil {
+		t.Fatalf("failed to write field: %v", err)
+	}
+	if err := w.WriteField("topic", "Hypertrophy"); err != nil {
+		t.Fatalf("failed to write field: %v", err)
+	}
+	if err := w.WriteField("authors", "Schoenfeld, B.; Ogborn, D."); err != nil {
+		t.Fatalf("failed to write field: %v", err)
+	}
+	if err := w.WriteField("year", "2017"); err != nil {
+		t.Fatalf("failed to write field: %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("failed to close writer: %v", err)
+	}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/studies", &buf)
 	req.Header.Set("Content-Type", w.FormDataContentType())
@@ -343,7 +367,9 @@ func TestSearchResponseShape(t *testing.T) {
 	srv.Router().ServeHTTP(rr, req)
 
 	var resp domain.SearchResponse
-	json.NewDecoder(rr.Body).Decode(&resp)
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
 
 	if resp.Latency == "" {
 		t.Error("latency field should be populated")
