@@ -137,7 +137,7 @@ export default function () {
     const res = http.post(
       `${BASE_URL}/api/v1/search`,
       JSON.stringify({ query, top_k: topK }),
-      { headers: { 'Content-Type': 'application/json' } },
+      { headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': `10.0.${__VU}.${__ITER}` } },
     );
 
     const ok = check(res, {
