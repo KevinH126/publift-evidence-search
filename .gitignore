@@ -22,5 +22,9 @@ __pycache__/
 pgdata/
 redisdata/
 
+# Fetched demo corpus (regenerate with `make seed-fulltext`, don't commit
+# scraped/licensed third-party content)
+pubmed_corpus/
+
 # Environment
 .env

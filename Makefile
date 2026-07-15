@@ -1,4 +1,4 @@
-.PHONY: up down test lint build seed bench clean
+.PHONY: up down test lint build seed seed-fulltext bench clean
 
 # Start all services
 up:
@@ -22,9 +22,17 @@ build:
 	go build -o bin/api ./cmd/api
 	go build -o bin/worker ./cmd/worker
 
-# Seed the database with sample documents
+# Seed the database with real exercise-science abstracts from PubMed
 seed:
-	@echo "TODO: implement bulk ingestion script (Day 6)"
+	python scripts/fetch_pubmed_corpus.py
+	python scripts/upload_corpus.py
+
+# Same as seed, but upgrades whichever studies have an Open Access full-text
+# copy in PMC first (slower — does an FTP download per eligible study)
+seed-fulltext:
+	python scripts/fetch_pubmed_corpus.py
+	python scripts/fetch_pmc_fulltext.py
+	python scripts/upload_corpus.py
 
 # Run load tests
 bench:
