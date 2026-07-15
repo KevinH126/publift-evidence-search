@@ -28,3 +28,6 @@ pubmed_corpus/
 
 # Environment
 .env
+
+# Local build-plan/spec notes, not for public tracking
+CLAUDE.md
